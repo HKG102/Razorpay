@@ -33,7 +33,7 @@ public class OrderRecord {
     private Integer attempts = 0;
 
     @JdbcTypeCode((SqlTypes.JSON))
-    @Column(columnDefinition = "json") // for postgress "jsonb"
+    @Column(columnDefinition = "jsonb") // for mysql "json"
     private Map<String, Object> notes;
 
     @Column(nullable = false)

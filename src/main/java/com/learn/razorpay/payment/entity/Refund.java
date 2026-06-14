@@ -42,7 +42,7 @@ public class Refund {
     private String errorDescription;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(columnDefinition = "json")  // for postgres sql it will be jsonb
+    @Column(columnDefinition = "jsonb")  // for mysql it will be json
     private Map<String, Object> notes;
 
     private LocalDateTime processedAt;

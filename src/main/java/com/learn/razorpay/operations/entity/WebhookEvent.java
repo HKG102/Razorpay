@@ -27,7 +27,7 @@ public class WebhookEvent {
     private String eventType;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(columnDefinition = "json") // for postgres sql it will be jsonb
+    @Column(columnDefinition = "jsonb") // for mysql it will be json
     private Map<String, Object> payload;
 
     @Column(nullable = false)

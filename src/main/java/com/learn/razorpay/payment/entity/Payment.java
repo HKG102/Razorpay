@@ -40,7 +40,7 @@ public class Payment {
     private PaymentMethod method;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "method_details", columnDefinition = "json")// for postgress "jsonb"
+    @Column(name = "method_details", columnDefinition = "jsonb")// for mysql "json"
     private Map<String, Object> methodDetails;
 
     @Column(length = 100)

@@ -1,13 +1,20 @@
 package com.learn.razorpay.vault.entity;
 
 import com.learn.razorpay.common.entity.BaseEntity;
+import com.learn.razorpay.common.enums.CardBrand;
 import jakarta.persistence.*;
+import lombok.*;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
 @Table(name = "vault_card")
+@Builder
+@Getter
+@Setter
+@AllArgsConstructor
+@NoArgsConstructor
 public class VaultCard extends BaseEntity {
 
     @Id
@@ -26,8 +33,9 @@ public class VaultCard extends BaseEntity {
     @Column(nullable = false)
     private byte[] encryptedDek; // using this encrypt the PAN
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String brand;
+    private CardBrand brand;
 
     @Column(nullable = false)
     private String expiryMonth;

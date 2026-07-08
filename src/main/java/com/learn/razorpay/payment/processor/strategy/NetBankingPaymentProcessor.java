@@ -22,7 +22,7 @@ public class NetBankingPaymentProcessor implements PaymentProcessor {
 
         String processorRef = "NBK_PROCESSOR_"+ RandomizerUtil.randomBase64(16);
 
-        String redirectRef = "http://REDIRECT_BANK.com/"+processorRef;
+//        String redirectRef = "http://REDIRECT_BANK.com/"+processorRef;
 
         return new PaymentProcessorResponse.Success(processorRef, redirectRef);
     }

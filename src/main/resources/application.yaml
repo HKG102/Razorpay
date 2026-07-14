@@ -15,7 +15,7 @@ spring:
         format_sql: true
 
 vault:
-  master-key: asdfg3456dfghjrtyuinb56789tyuibngdgdtgdhetyyttyitv
+  master-key: NqcfbJG1zkOfBsNF/wPmlLA7aaOvh9RCHTYYgY/9A2Q=
 
 payment:
   simulator:

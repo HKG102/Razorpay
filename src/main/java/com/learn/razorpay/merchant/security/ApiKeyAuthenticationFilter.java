@@ -76,9 +76,9 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
                 throw new BadRequestException("Invalid or missing API Key");
             }
 
-            RateLimitResult rateLimitResult = rateLimiter.check("apiKey:"+keyId, requestsPerMinute, 60);
+            RateLimitResult rateLimitResult = rateLimiter.check("apiKey:" + keyId, requestsPerMinute, 60);
 
-            if(!rateLimitResult.isAllowed()) {
+            if (!rateLimitResult.isAllowed()) {
                 log.warn("Too many requests keyId={}", keyId);
                 throw new RateLimitException("Too many requests", rateLimitResult.retryAfterSeconds());
             }
@@ -135,6 +135,6 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
         int colon = decoded.indexOf(":");
         if (colon < 1) return null;
 
-        return new String[]{decoded.substring(0, colon), decoded.substring(colon+1)};
+        return new String[]{decoded.substring(0, colon), decoded.substring(colon + 1)};
     }
 }

@@ -49,7 +49,7 @@ public class VaultServiceImpl implements VaultService {
         byte[] encryptedPan = VaultEncryptionConfig.panEncrypter(dek)
                 .encrypt(request.pan().getBytes(StandardCharsets.UTF_8));
 
-        byte[] encryptedDek = dekEncryptor.encrypt(encryptedPan);
+        byte[] encryptedDek = dekEncryptor.encrypt(dek);
 
 
         VaultCard vaultCard = vaultCardRepository.save(VaultCard.builder()

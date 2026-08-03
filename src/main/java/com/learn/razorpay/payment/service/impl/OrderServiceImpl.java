@@ -1,5 +1,6 @@
 package com.learn.razorpay.payment.service.impl;
 
+import com.learn.razorpay.common.enums.EventAggregateType;
 import com.learn.razorpay.common.enums.OrderStatus;
 import com.learn.razorpay.common.exception.BusinessRuleViolationException;
 import com.learn.razorpay.common.exception.DuplicateResourceException;
@@ -12,6 +13,7 @@ import com.learn.razorpay.payment.entity.OrderRecord;
 import com.learn.razorpay.payment.entity.Payment;
 import com.learn.razorpay.payment.mapper.OrderMapper;
 import com.learn.razorpay.payment.mapper.PaymentMapper;
+import com.learn.razorpay.payment.outbox.OutboxEventPublisher;
 import com.learn.razorpay.payment.repository.OrderRepository;
 import com.learn.razorpay.payment.repository.PaymentRepository;
 import com.learn.razorpay.payment.service.OrderService;
@@ -23,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -36,6 +39,7 @@ public class OrderServiceImpl implements OrderService {
     private final PaymentMapper paymentMapper;
     private final OrderMapper orderMapper;
     private final CustomerService customerService;
+    private final OutboxEventPublisher eventPublisher;
 
     @Value("${payment.order.default-order-expiry-minutes:30}")
     private int defaultOrderExpiryMinutes;
@@ -48,7 +52,7 @@ public class OrderServiceImpl implements OrderService {
         }
 
         UUID customerId = null;
-        if (request.customer() != null){
+        if (request.customer() != null) {
             customerId = customerService.findOrCreate(
                     merchantId,
                     request.customer().email(),
@@ -71,7 +75,17 @@ public class OrderServiceImpl implements OrderService {
 
         order = orderRepository.save(order);
 
-// TODO:        publish Kafka event about order creation
+        eventPublisher.publish(
+                EventAggregateType.ORDER,
+                order.getId(),
+                "ORDER_CREATED",
+                Map.of("orderId", order.getId().toString(),
+                        "merchantId", merchantId.toString(),
+                        "orderStatus", order.getOrderStatus().name(),
+                        "amountUnits", order.getAmount().getAmountUnits(),
+                        "amountCurrency", order.getAmount().getCurrency()
+                )
+        );
 
         return orderMapper.toResponse(order);
     }
@@ -79,7 +93,7 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public OrderResponse getById(UUID merchantId, UUID orderId) {
         OrderRecord order = orderRepository.findByIdAndMerchantId(orderId, merchantId)
-                .orElseThrow(()-> new ResourceNotFoundException("Order",  orderId));
+                .orElseThrow(() -> new ResourceNotFoundException("Order", orderId));
 
         return orderMapper.toResponse(order);
     }
@@ -88,22 +102,36 @@ public class OrderServiceImpl implements OrderService {
     @Transactional
     public OrderResponse cancel(UUID merchantId, UUID orderId) {
         OrderRecord order = orderRepository.findByIdAndMerchantId(orderId, merchantId)
-                .orElseThrow(()-> new ResourceNotFoundException("Order",  orderId));
+                .orElseThrow(() -> new ResourceNotFoundException("Order", orderId));
 
-        if(order.getOrderStatus() == OrderStatus.CANCELED || order.getOrderStatus() == OrderStatus.PAID) {
+        if (order.getOrderStatus() == OrderStatus.CANCELLED || order.getOrderStatus() == OrderStatus.PAID) {
             throw new BusinessRuleViolationException("ORDER_CANNOT_CANCEL",
                     "Cannot cancel order with status: " + order.getOrderStatus().name());
         }
 
-        order.setOrderStatus(OrderStatus.CANCELED);
+        order.setOrderStatus(OrderStatus.CANCELLED);
         order = orderRepository.save(order);
+
+        eventPublisher.publish(
+                EventAggregateType.ORDER,
+                order.getId(),
+                "ORDER_CANCELLED",
+                Map.of("orderId", order.getId(),
+                        "merchantId", merchantId.toString(),
+                        "orderStatus", order.getOrderStatus().name(),
+                        "amountUnits", order.getAmount().getAmountUnits(),
+                        "amountCurrency", order.getAmount().getCurrency()
+                )
+        );
+
+
         return orderMapper.toResponse(order);
     }
 
     @Override
     public List<PaymentResponse> listPayments(UUID merchantId, UUID orderId) {
-        OrderRecord order =orderRepository.findByIdAndMerchantId(orderId, merchantId)
-                .orElseThrow(()-> new ResourceNotFoundException("Order",  orderId));
+        OrderRecord order = orderRepository.findByIdAndMerchantId(orderId, merchantId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order", orderId));
 
         List<Payment> paymentList = paymentRepository.findByOrder_Id(order);
 
@@ -112,7 +140,7 @@ public class OrderServiceImpl implements OrderService {
 //            //    paymentMapper::toResponse ( lambda form of above line)
 //        ).collect(Collectors.toList());
 
- //       OR
+        //       OR
 
         return paymentMapper.toResponseList(paymentList);
     }

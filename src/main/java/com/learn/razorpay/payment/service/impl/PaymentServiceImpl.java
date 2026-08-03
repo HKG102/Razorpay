@@ -1,5 +1,6 @@
 package com.learn.razorpay.payment.service.impl;
 
+import com.learn.razorpay.common.enums.EventAggregateType;
 import com.learn.razorpay.common.enums.OrderStatus;
 import com.learn.razorpay.common.enums.PaymentEvent;
 import com.learn.razorpay.common.enums.PaymentStatus;
@@ -13,6 +14,7 @@ import com.learn.razorpay.payment.gateway.PaymentGatewayRouter;
 import com.learn.razorpay.payment.gateway.dto.PaymentRequest;
 import com.learn.razorpay.payment.gateway.dto.PaymentResult;
 import com.learn.razorpay.payment.mapper.PaymentMapper;
+import com.learn.razorpay.payment.outbox.OutboxEventPublisher;
 import com.learn.razorpay.payment.repository.OrderRepository;
 import com.learn.razorpay.payment.repository.PaymentRepository;
 import com.learn.razorpay.payment.service.PaymentService;
@@ -23,6 +25,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -35,6 +38,7 @@ public class PaymentServiceImpl implements PaymentService {
     private final PaymentGatewayRouter paymentGatewayRouter;
     private final PaymentMapper paymentMapper;
     private final PaymentTransitionService paymentTransitionService;
+    private final OutboxEventPublisher eventPublisher;
 
     @Override
     @Transactional
@@ -95,6 +99,21 @@ public class PaymentServiceImpl implements PaymentService {
         payment = paymentRepository.save(payment);
         orderRepository.save(order);
 
+        eventPublisher.publish(
+                EventAggregateType.PAYMENT,
+                payment.getId(),
+                "PAYMENT_CREATED",
+                Map.of("orderId", order.getId().toString(),
+                        "paymentId", payment.getId().toString(),
+                        "merchantId", merchantId.toString(),
+                        "paymentStatus", payment.getStatus().name(),
+                        "amountUnits", order.getAmount().getAmountUnits(),
+                        "amountCurrency", order.getAmount().getCurrency(),
+                        "paymentMethod", payment.getMethod()
+                )
+        );
+
+
         return paymentMapper.toResponse(payment);
     }
 
@@ -125,7 +144,19 @@ public class PaymentServiceImpl implements PaymentService {
 
         payment = paymentRepository.save(payment);
 
-//        TODO: send an outbox (kafka event)
+        eventPublisher.publish(
+                EventAggregateType.PAYMENT,
+                payment.getId(),
+                "PAYMENT_STATUS_CHANGED",
+                Map.of("orderId", payment.getOrder().getId().toString(),
+                        "paymentId", payment.getId().toString(),
+                        "merchantId", merchantId.toString(),
+                        "paymentStatus", payment.getStatus().name(),
+                        "amountUnits", payment.getOrder().getAmount().getAmountUnits(),
+                        "amountCurrency", payment.getOrder().getAmount().getCurrency(),
+                        "paymentMethod", payment.getMethod()
+                )
+        );
 
         return paymentMapper.toResponse(payment);
     }
@@ -175,6 +206,18 @@ public class PaymentServiceImpl implements PaymentService {
         paymentRepository.save(payment);
         orderRepository.save(orderRecord);
 
-        // TODO: send an outbox (kafka event)
+        eventPublisher.publish(
+                EventAggregateType.PAYMENT,
+                payment.getId(),
+                "PAYMENT_STATUS_CHANGED",
+                Map.of("orderId", payment.getOrder().getId().toString(),
+                        "paymentId", payment.getId().toString(),
+                        "merchantId", payment.getMerchantId().toString(),
+                        "paymentStatus", payment.getStatus().name(),
+                        "amountUnits", payment.getOrder().getAmount().getAmountUnits(),
+                        "amountCurrency", payment.getOrder().getAmount().getCurrency(),
+                        "paymentMethod", payment.getMethod()
+                )
+        );
     }
 }

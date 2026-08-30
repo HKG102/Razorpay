@@ -15,9 +15,9 @@ public class AuditorAwareImpl implements AuditorAware<String> {
 
     @Override
     public Optional<String> getCurrentAuditor() {
-        String keyId = merchantContext.getKeyId();
 
         try {
+            String keyId = merchantContext.getKeyId();
             if (keyId != null && !keyId.isEmpty()) {
                 return Optional.of(keyId);
             }
